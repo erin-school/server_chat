@@ -1,0 +1,40 @@
+name: Daily Morning Alert
+
+on:
+  schedule:
+    - cron: "30 0 * * *"  # UTC 기준 00:30 → KST 09:30
+  workflow_dispatch: {}    # 수동 실행도 가능
+
+jobs:
+  daily_alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send daily morning embed
+        run: |
+          NOW_KST=$(date '+%Y-%m-%d %H:%M:%S')
+          PAYLOAD=$(jq -n \
+            --arg now "$NOW_KST" \
+            '{
+              content: "🌞 오늘의 일일/주간 정보",
+              embeds: [
+                {
+                  title: "일일 & 주간 알림",
+                  description: "수동 확인 시각: \($now)",
+                  color: 3447003,
+                  fields: [
+                    {name: "일일 무료 캐시샵", value: "조각난 보석 보물상자, 일일 무료 패션", inline: true},
+                    {name: "일일 물물 교환", value: "[메이븐] 성수 1개, [엔델리온] 성수10개", inline: true},
+                    {name: "주간 계정 공유", value: "[여관 및 성당] 성수, [라사 및 스튜어트] 강화 비약 유화제", inline: false}
+                  ],
+                  footer: {text: "추억 길드"}
+                }
+              ]
+            }')
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$PAYLOAD" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
