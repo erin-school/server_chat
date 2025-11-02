@@ -1,0 +1,42 @@
+name: Test Abyss Alert
+
+on:
+  workflow_dispatch:  # 수동 실행 전용
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test Abyss spawn alert
+        run: |
+          echo "현재 시간 (KST): $(date -d '+9 hours')"
+          
+          # times.json 파일 존재 확인
+          if [ ! -f "times.json" ]; then
+            echo "⚠️ times.json 파일이 없음 — 테스트용 기본 데이터 사용"
+            echo '["2025-11-04T00:54:00+09:00"]' > times.json
+          fi
+
+          NOW=$(date -d '+9 hours' '+%s')
+
+          while read LINE; do
+            TIME=$(echo $LINE | grep -oE '"[0-9T:+-]+"' | tr -d '"')
+            [ -z "$TIME" ] && continue
+            TARGET=$(date -d "$TIME" '+%s')
+            ALERT=$((TARGET - 120)) # 2분 전
+            DIFF=$((NOW - ALERT))
+
+            echo "현재($NOW) vs 알림 시각($ALERT)"
+            if [ $DIFF -ge 0 ] && [ $DIFF -lt 300 ]; then
+              echo "🔔 테스트용 어비스 알림 전송!"
+              curl -H "Content-Type: application/json" \
+                   -X POST \
+                   -d "{\"content\":\"🌌 어비스 구멍 출현이야! (테스트 전송)\"}" \
+                   ${{ secrets.DISCORD_WEBHOOK_URL }}
+            else
+              echo "⏳ 아직 알림 시점이 아님 (차이: ${DIFF}s)"
+            fi
+          done < <(cat times.json)
