@@ -29,7 +29,7 @@ jobs:
                     {name: "일일", value: "[메이븐] 성수 1개, [엔델리온] 성수10개", inline: true},
                     {name: "주간", value: "[여관 및 성당] 성수, [라사 및 스튜어트] 강화 비약 유화제", inline: false}
                   ],
-                  footer: {text: "행복하란 말이야~"}
+                  footer: {text: "정보 업데이트 요청은 윤곰에게"}
                 }
               ]
             }')
