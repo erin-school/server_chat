@@ -1,39 +1,38 @@
-name: Discord Time Alerts
+name: Discord Time Alerts (Accurate)
 
 on:
   schedule:
-    # 매시 58분 (KST) = 49분 (UTC)
-    - cron: "49 * * * *"
-    # 특정 시간대: 11:58, 17:58, 19:58, 21:58 (KST)
-    - cron: "58 2 * * *"   # 오전 11:58 KST
-    - cron: "58 8 * * *"   # 오후 5:58 KST
-    - cron: "58 10 * * *"  # 오후 7:58 KST
-    - cron: "58 12 * * *"  # 오후 9:58 KST
-  workflow_dispatch:  # 수동 실행용 (테스트 가능)
+    - cron: "*/1 * * * *"  # 매분 실행
+  workflow_dispatch:
 
 jobs:
   send:
     runs-on: ubuntu-latest
     steps:
-      - name: Determine which message to send
+      - name: Send accurate alert
         run: |
-          HOUR=$(date -u +"%H")
-          MINUTE=$(date -u +"%M")
+          KST_HOUR=$(date -d '+9 hours' '+%H')
+          KST_MINUTE=$(date -d '+9 hours' '+%M')
 
-          # UTC 기준으로 시간 판별
-          if [ "$HOUR" == "2" ] && [ "$MINUTE" == "58" ]; then
-            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오전 11:58)"
-          elif [ "$HOUR" == "8" ] && [ "$MINUTE" == "58" ]; then
-            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 5:58)"
-          elif [ "$HOUR" == "10" ] && [ "$MINUTE" == "58" ]; then
-            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 7:58)"
-          elif [ "$HOUR" == "12" ] && [ "$MINUTE" == "58" ]; then
-            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 9:58)"
+          echo "현재 시간 (KST): ${KST_HOUR}:${KST_MINUTE}"
+
+          if [ "$KST_MINUTE" == "58" ]; then
+            if [ "$KST_HOUR" == "11" ]; then
+              MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오전 11:58)"
+            elif [ "$KST_HOUR" == "17" ]; then
+              MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 5:58)"
+            elif [ "$KST_HOUR" == "19" ]; then
+              MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 7:58)"
+            elif [ "$KST_HOUR" == "21" ]; then
+              MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 9:58)"
+            else
+              MESSAGE="⏰ 아 맞다! 결계!"
+            fi
+
+            curl -H "Content-Type: application/json" \
+              -X POST \
+              -d "{\"content\":\"$MESSAGE\"}" \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
           else
-            MESSAGE="⏰ 아 맞다! 결계!"
+            echo "⏳ 아직 알림 시각이 아님 (${KST_HOUR}:${KST_MINUTE})"
           fi
-
-          curl -H "Content-Type: application/json" \
-          -X POST \
-          -d "{\"content\":\"$MESSAGE\"}" \
-          ${{ secrets.DISCORD_WEBHOOK_URL }}
