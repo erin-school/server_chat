@@ -15,7 +15,7 @@ jobs:
           TITLE="11/3(월) 임시점검 안내 (09:00 ~11:00)"
           DESCRIPTION="마비노기 모바일 임시점검 안내드립니다."
           URL="https://mabinogimobile.nexon.com/News/Notice/3208255"
-          FOOTER="점검"
+          FOOTER="[공식] 점검 안내"
           COLOR=16753920
 
           # 줄바꿈 escape 처리
