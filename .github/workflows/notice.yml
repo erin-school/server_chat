@@ -1,9 +1,7 @@
-name: Abyss Alert
+name: Notice
 
 on:
   workflow_dispatch: {}  # 수동 실행 전용
-  schedule:
-    - cron: "0 12 * * 1"  # 예시: 매주 월요일 정오 실행
 
 jobs:
   send:
