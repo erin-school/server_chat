@@ -14,8 +14,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Abyss spawn alert (auto + manual)
+        env:
+          TZ: "Asia/Seoul"
         run: |
-          echo "현재 시간: $(date)"
+          echo "현재 시간 (KST): $(date)"
 
           # times.json 확인
           if [ ! -f "times.json" ]; then
@@ -56,11 +58,25 @@ jobs:
           # 🧩 수동 실행 시 다음 어비스 시간 전송
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ -n "$CLOSEST_TIME" ]; then
-              KST_FORMAT=$(date -d "$CLOSEST_TIME" '+%Y년 %m월 %d일 %H시 %M분')
-              echo "📅 다음 어비스 예상 출현: $KST_FORMAT"
+              WEEKDAY=$(date -d "$CLOSEST_TIME" '+%u')
+              case $WEEKDAY in
+                1) DAY="월";;
+                2) DAY="화";;
+                3) DAY="수";;
+                4) DAY="목";;
+                5) DAY="금";;
+                6) DAY="토";;
+                7) DAY="일";;
+              esac
+
+              KST_FORMAT=$(date -d "$CLOSEST_TIME" '+%Y년 %m월 %d일')
+              HOUR_MIN=$(date -d "$CLOSEST_TIME" '+%p %I시 %M분' | sed 's/AM/오전/;s/PM/오후/')
+              MESSAGE="📅 다음 어비스 예상 출현: ${KST_FORMAT} (${DAY}요일) ${HOUR_MIN}"
+
+              echo "$MESSAGE"
               curl -H "Content-Type: application/json" \
                    -X POST \
-                   -d "{\"content\":\"📅 다음 어비스 예상 출현: $KST_FORMAT\"}" \
+                   -d "{\"content\":\"$MESSAGE\"}" \
                    ${{ secrets.DISCORD_WEBHOOK_URL }}
             else
               echo "❌ 다음 출현 시간이 없음."
