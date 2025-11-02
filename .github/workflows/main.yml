@@ -19,19 +19,46 @@ jobs:
           if [ "$KST_MINUTE" == "58" ]; then
             if [ "$KST_HOUR" == "11" ]; then
               MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오전 11:58)"
+              EMBED_TITLE="🌞 오전 11시 58분"
+              EMBED_COLOR=1127128
             elif [ "$KST_HOUR" == "17" ]; then
               MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 5:58)"
+              EMBED_TITLE="🌇 오후 5시 58분"
+              EMBED_COLOR=14177041
             elif [ "$KST_HOUR" == "19" ]; then
               MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 7:58)"
+              EMBED_TITLE="🌆 오후 7시 58분"
+              EMBED_COLOR=16753920
             elif [ "$KST_HOUR" == "21" ]; then
               MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 9:58)"
+              EMBED_TITLE="🌙 오후 9시 58분"
+              EMBED_COLOR=3447003
             else
               MESSAGE="⏰ 아 맞다! 결계!"
+              EMBED_TITLE="💫 매시 58분 알림"
+              EMBED_COLOR=7506394
             fi
+
+            PAYLOAD=$(jq -n \
+              --arg content "$MESSAGE" \
+              --arg title1 "Meow!" \
+              --argjson color1 1127128 \
+              --arg title2 "Meow-meow!" \
+              --argjson color2 14177041 \
+              --arg alert_title "$EMBED_TITLE" \
+              --argjson alert_color "$EMBED_COLOR" \
+              '{
+                content: $content,
+                embeds: [
+                  {title: $title1, color: $color1},
+                  {title: $title2, color: $color2},
+                  {title: $alert_title, color: $alert_color}
+                ]
+              }')
 
             curl -H "Content-Type: application/json" \
               -X POST \
-              -d "{\"content\":\"$MESSAGE\"}" \
+              -d "$PAYLOAD" \
               ${{ secrets.DISCORD_WEBHOOK_URL }}
           else
             echo "⏳ 아직 알림 시각이 아님 (${KST_HOUR}:${KST_MINUTE})"
