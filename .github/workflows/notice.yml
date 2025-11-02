@@ -1,5 +1,6 @@
 TITLE="11/3(월) 임시점검 안내 (09:00 ~11:00)"
-DESCRIPTION="마비노기 모바일 임시점검 안내드립니다"
+DESCRIPTION="마비노기 모바일 임시점검 안내드립니다."
+
 URL="https://mabinogimobile.nexon.com/News/Notice/3208255"
 FOOTER="[점검]"
 COLOR=16753920
@@ -13,4 +14,17 @@ PAYLOAD=$(jq -n \
   --argjson color "$COLOR" \
   --arg footer "$FOOTER" \
   '{
-    embed
+    embeds: [
+      {
+        title: $title,
+        description: $description,
+        color: $color,
+        footer: {text: $footer}
+      }
+    ]
+  }')
+
+curl -H "Content-Type: application/json" \
+     -X POST \
+     -d "$PAYLOAD" \
+     ${{ secrets.DISCORD_WEBHOOK_URL }}
