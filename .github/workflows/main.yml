@@ -2,29 +2,25 @@ name: Discord Time Alerts
 
 on:
   schedule:
-    # 기존 고정 알림 (KST 기준)
-    - cron: "49 * * * *"   # 매시 58분 (KST)
+    # 매시 58분 (KST) = 49분 (UTC)
+    - cron: "49 * * * *"
+    # 특정 시간대: 11:58, 17:58, 19:58, 21:58 (KST)
     - cron: "58 2 * * *"   # 오전 11:58 KST
     - cron: "58 8 * * *"   # 오후 5:58 KST
     - cron: "58 10 * * *"  # 오후 7:58 KST
     - cron: "58 12 * * *"  # 오후 9:58 KST
-    # 새로운 기능: 매분 실행 (예상 출현 시간 자동 감지)
-    - cron: "* * * * *"
-  workflow_dispatch:
+  workflow_dispatch:  # 수동 실행용 (테스트 가능)
 
 jobs:
   send:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Determine which message to send (고정 시간용)
+      - name: Determine which message to send
         run: |
           HOUR=$(date -u +"%H")
           MINUTE=$(date -u +"%M")
-          MESSAGE=""
 
+          # UTC 기준으로 시간 판별
           if [ "$HOUR" == "2" ] && [ "$MINUTE" == "58" ]; then
             MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오전 11:58)"
           elif [ "$HOUR" == "8" ] && [ "$MINUTE" == "58" ]; then
@@ -33,41 +29,11 @@ jobs:
             MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 7:58)"
           elif [ "$HOUR" == "12" ] && [ "$MINUTE" == "58" ]; then
             MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 9:58)"
+          else
+            MESSAGE="⏰ 아 맞다! 결계!"
           fi
 
-          if [ -n "$MESSAGE" ]; then
-            curl -H "Content-Type: application/json" \
-                 -X POST \
-                 -d "{\"content\":\"$MESSAGE\"}" \
-                 ${{ secrets.DISCORD_WEBHOOK_URL }}
-          fi
-
-      - name: Abyss spawn time check (예상 출현 자동 감지)
-        run: |
-          # 현재 시각 (KST 기준)
-          NOW=$(date -d '+9 hours' '+%s')
-          echo "현재 시간 (KST): $(date -d '@'$NOW)"
-
-          # times.json 파일에 저장된 예상 출현 시간 목록 읽기
-          if [ ! -f "times.json" ]; then
-            echo "⚠️ times.json 파일이 없음 — 스킵"
-            exit 0
-          fi
-
-          while read LINE; do
-            # JSON 배열의 각 항목 시간 읽기
-            TIME=$(echo $LINE | grep -oE '"[0-9T:+-]+"' | tr -d '"')
-            [ -z "$TIME" ] && continue
-
-            TARGET=$(date -d "$TIME" '+%s')
-            ALERT=$((TARGET - 120))  # 2분 전
-
-            DIFF=$((NOW - ALERT))
-            if [ $DIFF -ge 0 ] && [ $DIFF -lt 60 ]; then
-              echo "🔔 어비스 출현 임박 감지 ($TIME)"
-              curl -H "Content-Type: application/json" \
-                   -X POST \
-                   -d "{\"content\":\"🌌 어비스 구멍 출현이야! ($TIME 기준)\"}" \
-                   ${{ secrets.DISCORD_WEBHOOK_URL }}
-            fi
-          done < <(cat times.json)
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d "{\"content\":\"$MESSAGE\"}" \
+          ${{ secrets.DISCORD_WEBHOOK_URL }}
