@@ -18,6 +18,12 @@ jobs:
 
           echo "현재 시간 (KST): ${NOW_KST}"
 
+          # 23시 ~ 08시는 알림 생략
+          if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
+            echo "💤 수면 시간: 알림 생략 (${KST_HOUR}:${KST_MINUTE})"
+            exit 0
+          fi
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # 수동 실행: 다음 정시까지 남은 시간
             MIN_LEFT=$((60 - 10#$KST_MINUTE - 1))
@@ -63,7 +69,7 @@ jobs:
             --arg title "$EMBED_TITLE" \
             --arg description "현재 시각: $NOW_KST" \
             --argjson color "$EMBED_COLOR" \
-            --arg footer "추억 길드" \
+            --arg footer "해당 알림은 수면 시간 보장을 위해 저녁 11시부터 다음날 8시까지는 발송되지 않습니다." \
             '{
               content: $content,
               embeds: [
