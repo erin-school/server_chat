@@ -1,16 +1,39 @@
-name: Send Discord Alert
+name: Discord Time Alerts
 
 on:
   schedule:
-    - cron: "49 * * * *"  # 매 정각 55분마다 (UTC 기준)
-  workflow_dispatch: # 수동 실행도 가능
+    # 매시 58분 (KST) = 49분 (UTC)
+    - cron: "49 * * * *"
+    # 특정 시간대: 11:58, 17:58, 19:58, 21:58 (KST)
+    - cron: "58 2 * * *"   # 오전 11:58 KST
+    - cron: "58 8 * * *"   # 오후 5:58 KST
+    - cron: "58 10 * * *"  # 오후 7:58 KST
+    - cron: "58 12 * * *"  # 오후 9:58 KST
+  workflow_dispatch:  # 수동 실행용 (테스트 가능)
+
 jobs:
   send:
     runs-on: ubuntu-latest
     steps:
-      - name: Send message to Discord
+      - name: Determine which message to send
         run: |
+          HOUR=$(date -u +"%H")
+          MINUTE=$(date -u +"%M")
+
+          # UTC 기준으로 시간 판별
+          if [ "$HOUR" == "2" ] && [ "$MINUTE" == "58" ]; then
+            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오전 11:58)"
+          elif [ "$HOUR" == "8" ] && [ "$MINUTE" == "58" ]; then
+            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 5:58)"
+          elif [ "$HOUR" == "10" ] && [ "$MINUTE" == "58" ]; then
+            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 7:58)"
+          elif [ "$HOUR" == "12" ] && [ "$MINUTE" == "58" ]; then
+            MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 9:58)"
+          else
+            MESSAGE="⏰ 아 맞다! 결계!"
+          fi
+
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content":"⏰ 아 맞다! 결계!"}' \
+          -d "{\"content\":\"$MESSAGE\"}" \
           ${{ secrets.DISCORD_WEBHOOK_URL }}
