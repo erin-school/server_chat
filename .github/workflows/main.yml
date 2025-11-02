@@ -63,7 +63,7 @@ jobs:
             --arg title "$EMBED_TITLE" \
             --arg description "현재 시각: $NOW_KST" \
             --argjson color "$EMBED_COLOR" \
-            --arg footer "GitHub Actions 자동 알림" \
+            --arg footer "추억 길드" \
             '{
               content: $content,
               embeds: [
