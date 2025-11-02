@@ -41,4 +41,4 @@ jobs:
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "$PAYLOAD" \
-               "${{ secrets.DISCORD_WEBHOOK_URL }}"
+               "${{ secrets.DISCORD_WEBHOOK_URL_NOTICE }}"
