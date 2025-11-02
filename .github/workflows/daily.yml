@@ -18,18 +18,18 @@ jobs:
           PAYLOAD=$(jq -n \
             --arg now "$NOW_KST" \
             '{
-              content: "🌞 오늘의 일일/주간 정보",
+              content: "🌞 오늘 하루도 힘내세요~",
               embeds: [
                 {
-                  title: "일일 & 주간 알림",
+                  title: "일일 & 주간 중요 교환 안내",
                   description: "수동 확인 시각: \($now)",
                   color: 3447003,
                   fields: [
                     {name: "일일 무료 캐시샵", value: "조각난 보석 보물상자, 일일 무료 패션", inline: true},
-                    {name: "일일 물물 교환", value: "[메이븐] 성수 1개, [엔델리온] 성수10개", inline: true},
-                    {name: "주간 계정 공유", value: "[여관 및 성당] 성수, [라사 및 스튜어트] 강화 비약 유화제", inline: false}
+                    {name: "일일", value: "[메이븐] 성수 1개, [엔델리온] 성수10개", inline: true},
+                    {name: "주간", value: "[여관 및 성당] 성수, [라사 및 스튜어트] 강화 비약 유화제", inline: false}
                   ],
-                  footer: {text: "추억 길드"}
+                  footer: {text: "행복하란 말이야~"}
                 }
               ]
             }')
