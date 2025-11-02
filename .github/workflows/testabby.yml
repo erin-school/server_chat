@@ -22,12 +22,6 @@ jobs:
           NOW_KST=$(date '+%Y-%m-%d %H:%M:%S')
           echo "현재 시간 (KST): ${NOW_KST}"
 
-          # 23시 ~ 08시는 알림 생략
-          if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
-            echo "💤 수면 시간: 알림 생략 (${KST_HOUR}:${KST_MINUTE})"
-            exit 0
-          fi
-
           # times.json 확인
           if [ ! -f "times.json" ]; then
             echo "⚠️ times.json 파일이 없음 — 기본 데이터 생성"
@@ -46,37 +40,41 @@ jobs:
             ALERT=$((TARGET - 120)) # 2분 전
             DIFF=$((NOW - ALERT))
 
-            # 🔔 자동 알림 (2분 전 감지)
-            if [ $DIFF -ge 0 ] && [ $DIFF -lt 60 ]; then
-              MESSAGE="에린 세계에 어비스로 향하는 구멍이 출현했습니다! 빨리가서 골드를 얻으세요."
-              EMBED_TITLE="🌌 어비스 구멍 출현이야!"
-              EMBED_COLOR=1127128
+            # 🔔 자동 알림 (2분 전 감지, 수면 시간 제외)
+            if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+              if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
+                echo "💤 수면 시간: 자동 알림 생략 (${KST_HOUR}:${KST_MINUTE})"
+              elif [ $DIFF -ge 0 ] && [ $DIFF -lt 60 ]; then
+                MESSAGE="에린 세계에 어비스로 향하는 구멍이 출현했습니다! 빨리가서 골드를 얻으세요."
+                EMBED_TITLE="🌌 어비스 구멍 출현!"
+                EMBED_COLOR=1127128
 
-              PAYLOAD=$(jq -n \
-                --arg content "$MESSAGE" \
-                --arg title "$EMBED_TITLE" \
-                --arg description "자동 알림: $(date -d "@$NOW" '+%Y-%m-%d %H:%M:%S')" \
-                --argjson color "$EMBED_COLOR" \
-                --arg footer "수면 시간(23시~8시)에는 발송되지 않습니다." \
-                '{
-                  content: $content,
-                  embeds: [
-                    {
-                      title: $title,
-                      description: $description,
-                      color: $color,
-                      footer: {text: $footer}
-                    }
-                  ]
-                }')
+                PAYLOAD=$(jq -n \
+                  --arg content "$MESSAGE" \
+                  --arg title "$EMBED_TITLE" \
+                  --arg description "자동 알림: $(date -d "@$NOW" '+%Y-%m-%d %H:%M:%S')" \
+                  --argjson color "$EMBED_COLOR" \
+                  --arg footer "수면 시간(23시~8시)에는 발송되지 않습니다." \
+                  '{
+                    content: $content,
+                    embeds: [
+                      {
+                        title: $title,
+                        description: $description,
+                        color: $color,
+                        footer: {text: $footer}
+                      }
+                    ]
+                  }')
 
-              curl -H "Content-Type: application/json" \
-                   -X POST \
-                   -d "$PAYLOAD" \
-                   ${{ secrets.DISCORD_WEBHOOK_URL }}
+                curl -H "Content-Type: application/json" \
+                     -X POST \
+                     -d "$PAYLOAD" \
+                     ${{ secrets.DISCORD_WEBHOOK_URL }}
+              fi
             fi
 
-            # 수동 실행용 다음 출현 시간 계산
+            # 다음 출현 시간 계산
             FUTURE_DIFF=$((TARGET - NOW))
             if [ $FUTURE_DIFF -ge 0 ] && [ $FUTURE_DIFF -lt $CLOSEST_DIFF ]; then
               CLOSEST_DIFF=$FUTURE_DIFF
@@ -84,7 +82,7 @@ jobs:
             fi
           done < <(cat times.json)
 
-          # 🧩 수동 실행 시 다음 어비스 시간 Embed 전송
+          # 🧩 수동 실행 시 다음 어비스 시간 Embed 전송 (시간 제한 없음)
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ -n "$CLOSEST_TIME" ]; then
               WEEKDAY=$(date -d "$CLOSEST_TIME" '+%u')
