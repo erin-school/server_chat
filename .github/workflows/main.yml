@@ -1,4 +1,4 @@
-name: Discord Time Alerts (Accurate)
+name: Discord Time Alerts (Unified Embed)
 
 on:
   schedule:
@@ -9,7 +9,7 @@ jobs:
   send:
     runs-on: ubuntu-latest
     steps:
-      - name: Send accurate alert
+      - name: Send unified embed alert
         run: |
           KST_HOUR=$(date -d '+9 hours' '+%H')
           KST_MINUTE=$(date -d '+9 hours' '+%M')
@@ -19,86 +19,64 @@ jobs:
           echo "현재 시간 (KST): ${NOW_KST}"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # ✅ 수동 실행일 때 — 다음 정시까지 남은 시간 계산
+            # 수동 실행: 다음 정시까지 남은 시간
             MIN_LEFT=$((60 - 10#$KST_MINUTE - 1))
             SEC_LEFT=$((60 - 10#$KST_SECOND))
-            if [ $SEC_LEFT -eq 60 ]; then SEC_LEFT=0; fi
-            if [ $MIN_LEFT -lt 0 ]; then MIN_LEFT=0; fi
+            [ $SEC_LEFT -eq 60 ] && SEC_LEFT=0
+            [ $MIN_LEFT -lt 0 ] && MIN_LEFT=0
 
-            MESSAGE="🧭 테스트 실행! 다음 정시까지 남은 시간은 약 ${MIN_LEFT}분 ${SEC_LEFT}초입니다."
-            EMBED_TITLE="⌛ 다음 정시까지 남은 시간"
+            MESSAGE="🧭 다음 결계 시간까지 남은 시간: ${MIN_LEFT}분 ${SEC_LEFT}초"
+            EMBED_TITLE="에린 세계에 열린 결계가 없습니다."
             EMBED_COLOR=10181046
 
-            PAYLOAD=$(jq -n \
-              --arg content "$MESSAGE" \
-              --arg title "$EMBED_TITLE" \
-              --arg time "$NOW_KST" \
-              --argjson color "$EMBED_COLOR" \
-              '{
-                content: $content,
-                embeds: [
-                  {
-                    title: $title,
-                    description: ("현재 시각: " + $time),
-                    color: $color,
-                    footer: {text: "GitHub Actions 테스트 실행"}
-                  }
-                ]
-              }')
-
-            echo "💬 테스트 알림 전송 중..."
-            curl -H "Content-Type: application/json" \
-              -X POST \
-              -d "$PAYLOAD" \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
-
-          else
-            # ⏰ 자동 모드 — 기존 알림 로직
-            if [ "$KST_MINUTE" == "58" ]; then
-              if [ "$KST_HOUR" == "11" ]; then
-                MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오전 11:58)"
-                EMBED_TITLE="🌞 오전 11시 58분"
-                EMBED_COLOR=1127128
-              elif [ "$KST_HOUR" == "17" ]; then
-                MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 5:58)"
-                EMBED_TITLE="🌇 오후 5시 58분"
-                EMBED_COLOR=14177041
-              elif [ "$KST_HOUR" == "19" ]; then
-                MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 7:58)"
-                EMBED_TITLE="🌆 오후 7시 58분"
-                EMBED_COLOR=16753920
-              elif [ "$KST_HOUR" == "21" ]; then
-                MESSAGE="⏰ 아 맞다! 필드 보스~!!! (오후 9:58)"
-                EMBED_TITLE="🌙 오후 9시 58분"
-                EMBED_COLOR=3447003
-              else
-                MESSAGE="⏰ 아 맞다! 결계!"
-                EMBED_TITLE="💫 매시 58분 알림"
-                EMBED_COLOR=7506394
-              fi
-
-              PAYLOAD=$(jq -n \
-                --arg content "$MESSAGE" \
-                --arg title1 "Meow!" \
-                --argjson color1 1127128 \
-                --arg title2 "Meow-meow!" \
-                --argjson color2 14177041 \
-                --arg alert_title "$EMBED_TITLE" \
-                --argjson alert_color "$EMBED_COLOR" \
-                '{
-                  content: $content,
-                  embeds: [
-                    {title: $title1, color: $color1},
-                    {title: $title2, color: $color2},
-                    {title: $alert_title, color: $alert_color}
-                  ]
-                }')
-
-              curl -H "Content-Type: application/json" \
-                -X POST \
-                -d "$PAYLOAD" \
-                ${{ secrets.DISCORD_WEBHOOK_URL }}
+          elif [ "$KST_MINUTE" == "58" ]; then
+            # 자동 알림: 매시 58분
+            if [ "$KST_HOUR" == "11" ]; then
+              MESSAGE="[⏰ 오전 11:58] 인장 파밍을 위해 꼭 토르모그 일반/어려움을 한번씩 돌아주세요."
+              EMBED_TITLE="필드 보스가 곧 등장 합니다."
+              EMBED_COLOR=1127128
+            elif [ "$KST_HOUR" == "17" ]; then
+              MESSAGE="[⏰ 오후 5:58] 인장 파밍을 위해 꼭 토르모그 일반/어려움을 한번씩 돌아주세요."
+              EMBED_TITLE="필드 보스가 곧 등장 합니다."
+              EMBED_COLOR=14177041
+            elif [ "$KST_HOUR" == "19" ]; then
+              MESSAGE="[⏰ 오후 7:58] 인장 파밍을 위해 꼭 토르모그 일반/어려움을 한번씩 돌아주세요."
+              EMBED_TITLE="필드 보스가 곧 등장 합니다."
+              EMBED_COLOR=16753920
+            elif [ "$KST_HOUR" == "21" ]; then
+              MESSAGE="[⏰ 오후 9:58] 인장 파밍을 위해 꼭 토르모그 일반/어려움을 한번씩 돌아주세요."
+              EMBED_TITLE="필드 보스가 곧 등장 합니다."
+              EMBED_COLOR=3447003
             else
-              echo "⏳ 아직 알림 시각이 아님 (${KST_HOUR}:${KST_MINUTE})"
+              MESSAGE="💫 에린 세계에 새로운 결계가 생성되는 중 입니다. 잊지말고 참여합시다!"
+              EMBED_TITLE="새로운 결계 감지 됨!!"
+              EMBED_COLOR=7506394
             fi
+          else
+            echo "⏳ 아직 알림 시각이 아님 (${KST_HOUR}:${KST_MINUTE})"
+            exit 0
           fi
+
+          # 공통 embed 전송
+          PAYLOAD=$(jq -n \
+            --arg content "$MESSAGE" \
+            --arg title "$EMBED_TITLE" \
+            --arg description "현재 시각: $NOW_KST" \
+            --argjson color "$EMBED_COLOR" \
+            --arg footer "GitHub Actions 자동 알림" \
+            '{
+              content: $content,
+              embeds: [
+                {
+                  title: $title,
+                  description: $description,
+                  color: $color,
+                  footer: {text: $footer}
+                }
+              ]
+            }')
+
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d "$PAYLOAD" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
