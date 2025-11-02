@@ -1,42 +1,72 @@
-name: Test Abyss Alert
+name: Abyss Alert
 
 on:
-  workflow_dispatch:  # 수동 실행 전용
+  schedule:
+    # 매분 실행 (KST 기준 자동으로 감지)
+    - cron: "*/1 * * * *"
+  workflow_dispatch:  # 수동 실행 가능
 
 jobs:
-  test:
+  abyss:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Test Abyss spawn alert
+      - name: Abyss spawn alert (auto + manual)
         run: |
           echo "현재 시간 (KST): $(date -d '+9 hours')"
-          
-          # times.json 파일 존재 확인
+
+          # times.json 파일 확인
           if [ ! -f "times.json" ]; then
-            echo "⚠️ times.json 파일이 없음 — 테스트용 기본 데이터 사용"
-            echo '["2025-11-04T00:54:00+09:00"]' > times.json
+            echo "⚠️ times.json 파일이 없음 — 기본 데이터 사용"
+            echo '["2025-11-04T00:54:00+09:00","2025-11-05T13:09:00+09:00","2025-11-07T01:24:00+09:00","2025-11-08T13:39:00+09:00","2025-11-10T01:54:00+09:00","2025-11-11T14:09:00+09:00"]' > times.json
           fi
 
           NOW=$(date -d '+9 hours' '+%s')
+          CLOSEST_DIFF=9999999999
+          CLOSEST_TIME=""
 
+          # times.json 순회
           while read LINE; do
             TIME=$(echo $LINE | grep -oE '"[0-9T:+-]+"' | tr -d '"')
             [ -z "$TIME" ] && continue
+
             TARGET=$(date -d "$TIME" '+%s')
             ALERT=$((TARGET - 120)) # 2분 전
             DIFF=$((NOW - ALERT))
 
-            echo "현재($NOW) vs 알림 시각($ALERT)"
-            if [ $DIFF -ge 0 ] && [ $DIFF -lt 300 ]; then
-              echo "🔔 테스트용 어비스 알림 전송!"
+            # 🔔 자동 알림 (2분 전 감지)
+            if [ $DIFF -ge 0 ] && [ $DIFF -lt 60 ]; then
+              echo "🔔 어비스 구멍 출현 알림 전송!"
               curl -H "Content-Type: application/json" \
                    -X POST \
-                   -d "{\"content\":\"🌌 어비스 구멍 출현이야! (테스트 전송)\"}" \
+                   -d "{\"content\":\"🌌 어비스 구멍 출현이야!\"}" \
                    ${{ secrets.DISCORD_WEBHOOK_URL }}
-            else
-              echo "⏳ 아직 알림 시점이 아님 (차이: ${DIFF}s)"
+            fi
+
+            # 📅 다음 어비스 시간 계산 (수동 실행용)
+            FUTURE_DIFF=$((TARGET - NOW))
+            if [ $FUTURE_DIFF -ge 0 ] && [ $FUTURE_DIFF -lt $CLOSEST_DIFF ]; then
+              CLOSEST_DIFF=$FUTURE_DIFF
+              CLOSEST_TIME=$TIME
             fi
           done < <(cat times.json)
+
+          # 🧩 수동 실행 시 다음 어비스 시간 표시
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "$CLOSEST_TIME" ]; then
+              KST_FORMAT=$(date -d "$CLOSEST_TIME" '+%Y년 %m월 %d일 %H시 %M분')
+              echo "📅 다음 어비스 예상 출현: $KST_FORMAT"
+              curl -H "Content-Type: application/json" \
+                   -X POST \
+                   -d "{\"content\":\"📅 다음 어비스 예상 출현: $KST_FORMAT\"}" \
+                   ${{ secrets.DISCORD_WEBHOOK_URL }}
+            else
+              echo "❌ 다음 출현 시간이 없음."
+              curl -H "Content-Type: application/json" \
+                   -X POST \
+                   -d "{\"content\":\"❌ 다음 어비스 출현 시간이 없습니다.\"}" \
+                   ${{ secrets.DISCORD_WEBHOOK_URL }}
+            fi
+          fi
