@@ -3,6 +3,7 @@ name: Discord Hourly Alert (결계 알림)
 on:
   schedule:
     - cron: "* * * * *"  # 58~59분, 0~2분만 실행
+workflow_dispatch:
 
 jobs:
   send:
