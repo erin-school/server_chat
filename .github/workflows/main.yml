@@ -1,83 +1,30 @@
-name: Discord Time Alerts (Unified Embed)
+name: Discord Hourly Alert (결계 알림)
 
 on:
   schedule:
-    - cron: "*/1 * * * *"  # 매분 실행
+    - cron: "0 * * * *"  # 매시 정각
   workflow_dispatch:
 
 jobs:
   send:
     runs-on: ubuntu-latest
     steps:
-      - name: Send unified embed alert
+      - name: Send hourly alert
         run: |
           KST_HOUR=$(date -d '+9 hours' '+%H')
           KST_MINUTE=$(date -d '+9 hours' '+%M')
-          KST_SECOND=$(date -d '+9 hours' '+%S')
           NOW_KST=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S')
 
-          echo "현재 시간 (KST): ${NOW_KST}"
-
-          # 23시 ~ 08시는 알림 생략
+          # 수면 시간 23~08시 제외
           if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
             echo "💤 수면 시간: 알림 생략 (${KST_HOUR}:${KST_MINUTE})"
             exit 0
           fi
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # 수동 실행: 다음 정시까지 남은 시간
-            MIN_LEFT=$((60 - 10#$KST_MINUTE - 1))
-            SEC_LEFT=$((60 - 10#$KST_SECOND))
-            [ $SEC_LEFT -eq 60 ] && SEC_LEFT=0
-            [ $MIN_LEFT -lt 0 ] && MIN_LEFT=0
+          MESSAGE="💫 에린 세계에 새로운 결계가 생성되는 중 입니다. 잊지말고 참여합시다!"
+          EMBED_TITLE="새로운 결계 감지 됨!!"
+          EMBED_COLOR=7506394
 
-            MESSAGE="🧭 다음 결계 시간까지 남은 시간: ${MIN_LEFT}분 ${SEC_LEFT}초"
-            EMBED_TITLE="에린 세계에 열린 결계가 없습니다."
-            EMBED_COLOR=10181046
-
-          else
-            # 자동 알림: 매시 55분 ~ 61분 허용 (58분 목표 + 최대 2분 초과)
-            ALERT_HOURS=("11" "17" "19" "21")
-            SEND_ALERT=false
-
-            for H in "${ALERT_HOURS[@]}"; do
-              if [ "$KST_HOUR" == "$H" ] && [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 61 ]; then
-                SEND_ALERT=true
-                break
-              fi
-            done
-
-            if [ "$SEND_ALERT" = true ]; then
-              case "$KST_HOUR" in
-                "11")
-                  MESSAGE="[⏰ 오전 11:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                  EMBED_TITLE="필드 보스가 곧 등장 합니다."
-                  EMBED_COLOR=1127128
-                  ;;
-                "17")
-                  MESSAGE="[⏰ 오후 5:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                  EMBED_TITLE="필드 보스가 곧 등장 합니다."
-                  EMBED_COLOR=14177041
-                  ;;
-                "19")
-                  MESSAGE="[⏰ 오후 7:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                  EMBED_TITLE="필드 보스가 곧 등장 합니다."
-                  EMBED_COLOR=16753920
-                  ;;
-                "21")
-                  MESSAGE="[⏰ 오후 9:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                  EMBED_TITLE="필드 보스가 곧 등장 합니다."
-                  EMBED_COLOR=3447003
-                  ;;
-              esac
-            else
-              MESSAGE="💫 에린 세계에 새로운 결계가 생성되는 중 입니다. 잊지말고 참여합시다!"
-              EMBED_TITLE="새로운 결계 감지 됨!!"
-              EMBED_COLOR=7506394
-            fi
-          fi
-
-          # 공통 embed 전송
           PAYLOAD=$(jq -n \
             --arg content "$MESSAGE" \
             --arg title "$EMBED_TITLE" \
