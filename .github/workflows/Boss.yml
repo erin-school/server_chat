@@ -1,0 +1,77 @@
+name: Discord Boss Alert (보스 알림)
+
+on:
+  schedule:
+    - cron: "55-59 11,17,19,21 * * *"  # 11,17,19,21시 55~59분 매분 실행
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send boss alert
+        run: |
+          KST_HOUR=$(date -d '+9 hours' '+%H')
+          KST_MINUTE=$(date -d '+9 hours' '+%M')
+          NOW_KST=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S')
+
+          # 수면 시간 23~08시 제외
+          if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
+            echo "💤 수면 시간: 알림 생략 (${KST_HOUR}:${KST_MINUTE})"
+            exit 0
+          fi
+
+          # 보스 알림: 55~59분 사이 발송
+          if [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 59 ]; then
+            case "$KST_HOUR" in
+              "11")
+                MESSAGE="[⏰ 오전 11:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                EMBED_COLOR=1127128
+                ;;
+              "17")
+                MESSAGE="[⏰ 오후 5:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                EMBED_COLOR=14177041
+                ;;
+              "19")
+                MESSAGE="[⏰ 오후 7:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                EMBED_COLOR=16753920
+                ;;
+              "21")
+                MESSAGE="[⏰ 오후 9:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                EMBED_COLOR=3447003
+                ;;
+              *)
+                echo "알림 대상 시간이 아님"
+                exit 0
+                ;;
+            esac
+
+            EMBED_TITLE="필드 보스가 곧 등장 합니다."
+
+            PAYLOAD=$(jq -n \
+              --arg content "$MESSAGE" \
+              --arg title "$EMBED_TITLE" \
+              --arg description "현재 시각: $NOW_KST" \
+              --argjson color "$EMBED_COLOR" \
+              --arg footer "해당 알림은 수면 시간 보장을 위해 저녁 11시부터 다음날 8시까지는 발송되지 않습니다." \
+              '{
+                content: $content,
+                embeds: [
+                  {
+                    title: $title,
+                    description: $description,
+                    color: $color,
+                    footer: {text: $footer}
+                  }
+                ]
+              }')
+
+            curl -H "Content-Type: application/json" \
+              -X POST \
+              -d "$PAYLOAD" \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+          else
+            echo "알림 대상 시간이 아님"
+            exit 0
+          fi
