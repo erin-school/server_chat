@@ -2,7 +2,7 @@ name: Discord Hourly Alert (결계 알림)
 
 on:
   schedule:
-    - cron: "0 * * * *"  # 매시 정각
+    - cron: "*/1 * * * *"  # 매분 실행
   workflow_dispatch:
 
 jobs:
@@ -13,6 +13,7 @@ jobs:
         run: |
           KST_HOUR=$(date -d '+9 hours' '+%H')
           KST_MINUTE=$(date -d '+9 hours' '+%M')
+          KST_SECOND=$(date -d '+9 hours' '+%S')
           NOW_KST=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S')
 
           # 수면 시간 23~08시 제외
@@ -21,9 +22,30 @@ jobs:
             exit 0
           fi
 
-          MESSAGE="💫 에린 세계에 새로운 결계가 생성되는 중 입니다. 잊지말고 참여합시다!"
-          EMBED_TITLE="새로운 결계 감지 됨!!"
-          EMBED_COLOR=7506394
+          # 결계 시간 범위: 58~02분
+          if [ "$KST_MINUTE" -ge 58 ] || [ "$KST_MINUTE" -le 2 ]; then
+            MESSAGE="💫 에린 세계에 새로운 결계가 생성되는 중 입니다. 잊지말고 참여합시다!"
+            EMBED_TITLE="새로운 결계 감지 됨!!"
+            EMBED_COLOR=7506394
+          else
+            # 아직 결계가 열리지 않음 → 다음 정시까지 남은 시간 계산
+            if [ "$KST_MINUTE" -lt 58 ]; then
+              MIN_LEFT=$((58 - 10#$KST_MINUTE - 1))
+              SEC_LEFT=$((60 - 10#$KST_SECOND))
+              [ $SEC_LEFT -eq 60 ] && SEC_LEFT=0
+              [ $MIN_LEFT -lt 0 ] && MIN_LEFT=0
+            else
+              # 02분 이후 → 다음 시간 결계까지 남은 시간
+              MIN_LEFT=$((60 - 10#$KST_MINUTE + 58))
+              SEC_LEFT=$((60 - 10#$KST_SECOND))
+              [ $SEC_LEFT -eq 60 ] && SEC_LEFT=0
+              [ $MIN_LEFT -lt 0 ] && MIN_LEFT=0
+            fi
+
+            MESSAGE="⏳ 아직 결계가 열리지 않았습니다.\n다음 결계까지 남은 시간: ${MIN_LEFT}분 ${SEC_LEFT}초"
+            EMBED_TITLE="결계 대기 중"
+            EMBED_COLOR=10181046
+          fi
 
           PAYLOAD=$(jq -n \
             --arg content "$MESSAGE" \
