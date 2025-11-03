@@ -1,144 +1,167 @@
 name: Abyss Alert (Embed)
 
 on:
-  schedule:
-    - cron: "*/1 * * * *"  # 매분 실행
-  workflow_dispatch: {}    # 수동 실행 가능
+schedule:
+# 매분 실행 (2분 전 감지용)
+- cron: "*/1 * * * *"
+workflow_dispatch:  # 수동 실행 가능
 
 jobs:
-  abyss:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+abyss:
+runs-on: ubuntu-latest
+steps:
+- name: Checkout repository
+uses: actions/checkout@v4
 
-      - name: Abyss spawn alert (Embed)
-        env:
-          TZ: "Asia/Seoul"
-        run: |
-          KST_HOUR=$(date '+%H')
-          KST_MINUTE=$(date '+%M')
-          NOW_KST=$(date '+%Y-%m-%d %H:%M:%S')
-          NOW=$(date '+%s')
-          echo "현재 시간 (KST): ${NOW_KST}"
+- name: Abyss spawn alert (Embed)  
+    env:  
+      TZ: "Asia/Seoul"  
+    run: |  
+      KST_HOUR=$(date '+%H')  
+      KST_MINUTE=$(date '+%M')  
+      NOW_KST=$(date '+%Y-%m-%d %H:%M:%S')  
+      NOW=$(date '+%s')  
+      echo "현재 시간 (KST): ${NOW_KST}"  
 
-          # 수면 시간 체크 (23시~08시)
-          if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
-            echo "💤 수면 시간: 알림 생략 (${KST_HOUR}:${KST_MINUTE})"
-            exit 0
-          fi
+      # times.json 확인  
+      if [ ! -f "times.json" ]; then  
+        echo "⚠️ times.json 파일이 없음 — 기본 데이터 생성"  
+        echo '["2025-11-04T00:54:00+09:00","2025-11-05T13:09:00+09:00","2025-11-07T01:24:00+09:00","2025-11-08T13:39:00+09:00","2025-11-10T01:54:00+09:00","2025-11-11T14:09:00+09:00"]' > times.json  
+      fi  
 
-          # 자동 발송 시간 범위: 55분 ~ 정각(0분)
-          if [ "$KST_MINUTE" -lt 55 ] && [ "$KST_MINUTE" -ne 0 ]; then
-            echo "⏳ 알림 발송 범위 아님 (${KST_HOUR}:${KST_MINUTE})"
-            exit 0
-          fi
+      # 중복 발송 기록 파일  
+      LAST_SENT_FILE="last_sent.txt"  
+      if [ ! -f "$LAST_SENT_FILE" ]; then  
+        echo "" > "$LAST_SENT_FILE"  
+      fi  
+      LAST_SENT=$(cat "$LAST_SENT_FILE")  
 
-          # times.json 확인
-          if [ ! -f "times.json" ]; then
-            echo "⚠️ times.json 파일이 없음 — 기본 데이터 생성"
-            echo '["2025-11-04T00:54:00+09:00","2025-11-05T13:09:00+09:00"]' > times.json
-          fi
+      CLOSEST_DIFF=9999999999  
+      CLOSEST_TIME=""  
 
-          # 중복 발송 기록
-          LAST_SENT_FILE="last_sent.txt"
-          [ ! -f "$LAST_SENT_FILE" ] && echo "" > "$LAST_SENT_FILE"
-          LAST_SENT=$(cat "$LAST_SENT_FILE")
+      while read LINE; do  
+        TIME=$(echo $LINE | grep -oE '"[0-9T:+-]+"' | tr -d '"')  
+        [ -z "$TIME" ] && continue  
 
-          CLOSEST_DIFF=9999999999
-          CLOSEST_TIME=""
+        TARGET=$(date -d "$TIME" '+%s')  
+        ALERT=$((TARGET - 120)) # 2분 전  
+        DIFF=$((NOW - ALERT))  
 
-          while read LINE; do
-            TIME=$(echo $LINE | grep -oE '"[0-9T:+-]+"' | tr -d '"')
-            [ -z "$TIME" ] && continue
+        # 🔔 자동 알림 (2분 전 ~ 출현 시점까지, 수면 시간 제외, 중복 방지)  
+        if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then  
+          if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then  
+            echo "💤 수면 시간: 자동 알림 생략 (${KST_HOUR}:${KST_MINUTE})"  
+          elif [ $DIFF -ge 0 ] && [ $DIFF -lt 120 ] && [ "$LAST_SENT" != "$TIME" ]; then  
+            echo "🔔 어비스 출현 알림 발송: $TIME"  
 
-            TARGET=$(date -d "$TIME" '+%s')
-            ALERT=$((TARGET - 120))  # 2분 전
-            DIFF=$((NOW - ALERT))
+            MESSAGE="에린 세계에 어비스로 향하는 구멍이 출현했습니다! 빨리가서 골드를 얻으세요."  
+            EMBED_TITLE="🌌 어비스 구멍 출현!"  
+            EMBED_COLOR=1127128  
 
-            # 🔔 자동 알림 (2분 전 ~ 출현 시점, 수면 시간 제외, 중복 방지)
-            if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-              if [ "$DIFF" -ge 0 ] && [ "$DIFF" -lt 120 ] && [ "$LAST_SENT" != "$TIME" ]; then
-                echo "🔔 어비스 출현 알림 발송: $TIME"
+            PAYLOAD=$(jq -n \  
+              --arg content "$MESSAGE" \  
+              --arg title "$EMBED_TITLE" \  
+              --arg description "자동 알림: $(date -d "@$NOW" '+%Y-%m-%d %H:%M:%S')" \  
+              --argjson color "$EMBED_COLOR" \  
+              --arg footer "수면 시간(23시~8시)에는 발송되지 않습니다." \  
+              '{  
+                content: $content,  
+                embeds: [  
+                  {  
+                    title: $title,  
+                    description: $description,  
+                    color: $color,  
+                    footer: {text: $footer}  
+                  }  
+                ]  
+              }')  
 
-                MESSAGE="에린 세계에 어비스로 향하는 구멍이 출현했습니다! 빨리가서 골드를 얻으세요."
-                EMBED_TITLE="🌌 어비스 구멍 출현!"
-                EMBED_COLOR=1127128
+            curl -H "Content-Type: application/json" \  
+                 -X POST \  
+                 -d "$PAYLOAD" \  
+                 ${{ secrets.DISCORD_WEBHOOK_URL }}  
 
-                PAYLOAD=$(jq -n \
-                  --arg content "$MESSAGE" \
-                  --arg title "$EMBED_TITLE" \
-                  --arg description "자동 알림: ${NOW_KST}" \
-                  --argjson color "$EMBED_COLOR" \
-                  --arg footer "수면 시간(23시~8시)에는 발송되지 않습니다." \
-                  '{content: $content, embeds: [{title: $title, description: $description, color: $color, footer: {text: $footer}}]}')
+            # 발송 기록 갱신  
+            echo "$TIME" > "$LAST_SENT_FILE"  
+          fi  
+        fi  
 
-                curl -H "Content-Type: application/json" \
-                     -X POST \
-                     -d "$PAYLOAD" \
-                     ${{ secrets.DISCORD_WEBHOOK_URL }}
+        # 다음 출현 시간 계산  
+        FUTURE_DIFF=$((TARGET - NOW))  
+        if [ $FUTURE_DIFF -ge 0 ] && [ $FUTURE_DIFF -lt $CLOSEST_DIFF ]; then  
+          CLOSEST_DIFF=$FUTURE_DIFF  
+          CLOSEST_TIME=$TIME  
+        fi  
+      done < <(cat times.json)  
 
-                # 발송 기록 갱신
-                echo "$TIME" > "$LAST_SENT_FILE"
-              fi
-            fi
+      # 🧩 수동 실행 시 다음 어비스 시간 Embed 전송 (시간 제한 없음)  
+      if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then  
+        if [ -n "$CLOSEST_TIME" ]; then  
+          WEEKDAY=$(date -d "$CLOSEST_TIME" '+%u')  
+          case $WEEKDAY in  
+            1) DAY="월";;  
+            2) DAY="화";;  
+            3) DAY="수";;  
+            4) DAY="목";;  
+            5) DAY="금";;  
+            6) DAY="토";;  
+            7) DAY="일";;  
+          esac  
 
-            # 다음 출현 시간 계산 (수동용)
-            FUTURE_DIFF=$((TARGET - NOW))
-            if [ $FUTURE_DIFF -ge 0 ] && [ $FUTURE_DIFF -lt $CLOSEST_DIFF ]; then
-              CLOSEST_DIFF=$FUTURE_DIFF
-              CLOSEST_TIME=$TIME
-            fi
-          done < <(cat times.json)
+          KST_FORMAT=$(date -d "$CLOSEST_TIME" '+%Y년 %m월 %d일')  
+          HOUR_MIN=$(date -d "$CLOSEST_TIME" '+%p %I시 %M분' | sed 's/AM/오전/;s/PM/오후/')  
+          MESSAGE="📅 다음 어비스 출현 시간"  
+          EMBED_TITLE="${KST_FORMAT} (${DAY}요일) ${HOUR_MIN}"  
+          EMBED_COLOR=14177041  
 
-          # 🧩 수동 실행 시 다음 어비스 시간 Embed 전송
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            if [ -n "$CLOSEST_TIME" ]; then
-              WEEKDAY=$(date -d "$CLOSEST_TIME" '+%u')
-              case $WEEKDAY in
-                1) DAY="월";;
-                2) DAY="화";;
-                3) DAY="수";;
-                4) DAY="목";;
-                5) DAY="금";;
-                6) DAY="토";;
-                7) DAY="일";;
-              esac
+          PAYLOAD=$(jq -n \  
+            --arg content "$MESSAGE" \  
+            --arg title "$EMBED_TITLE" \  
+            --arg description "최종 확인 시간: ${NOW_KST}" \  
+            --argjson color "$EMBED_COLOR" \  
+            --arg footer "업데이트 일정에 따라 출현 시간이 변경 될 수 있습니다." \  
+            '{  
+              content: $content,  
+              embeds: [  
+                {  
+                  title: $title,  
+                  description: $description,  
+                  color: $color,  
+                  footer: {text: $footer}  
+                }  
+              ]  
+            }')  
 
-              KST_FORMAT=$(date -d "$CLOSEST_TIME" '+%Y년 %m월 %d일')
-              HOUR_MIN=$(date -d "$CLOSEST_TIME" '+%p %I시 %M분' | sed 's/AM/오전/;s/PM/오후/')
-              MESSAGE="📅 다음 어비스 출현 시간"
-              EMBED_TITLE="${KST_FORMAT} (${DAY}요일) ${HOUR_MIN}"
-              EMBED_COLOR=14177041
+          curl -H "Content-Type: application/json" \  
+               -X POST \  
+               -d "$PAYLOAD" \  
+               ${{ secrets.DISCORD_WEBHOOK_URL }}  
+        else  
+          MESSAGE="❌ 다음 출현 시간이 없음."  
+          EMBED_TITLE="어비스 정보 없음"  
+          EMBED_COLOR=7506394  
 
-              PAYLOAD=$(jq -n \
-                --arg content "$MESSAGE" \
-                --arg title "$EMBED_TITLE" \
-                --arg description "최종 확인 시간: ${NOW_KST}" \
-                --argjson color "$EMBED_COLOR" \
-                --arg footer "업데이트 일정에 따라 출현 시간이 변경될 수 있습니다." \
-                '{content: $content, embeds: [{title: $title, description: $description, color: $color, footer: {text: $footer}}]}')
+          PAYLOAD=$(jq -n \  
+            --arg content "$MESSAGE" \  
+            --arg title "$EMBED_TITLE" \  
+            --arg description "수동 확인 시각: ${NOW_KST}" \  
+            --argjson color "$EMBED_COLOR" \  
+            --arg footer "추억 길드" \  
+            '{  
+              content: $content,  
+              embeds: [  
+                {  
+                  title: $title,  
+                  description: $description,  
+                  color: $color,  
+                  footer: {text: $footer}  
+                }  
+              ]  
+            }')  
 
-              curl -H "Content-Type: application/json" \
-                   -X POST \
-                   -d "$PAYLOAD" \
-                   ${{ secrets.DISCORD_WEBHOOK_URL }}
-            else
-              MESSAGE="❌ 다음 출현 시간이 없음."
-              EMBED_TITLE="어비스 정보 없음"
-              EMBED_COLOR=7506394
-
-              PAYLOAD=$(jq -n \
-                --arg content "$MESSAGE" \
-                --arg title "$EMBED_TITLE" \
-                --arg description "수동 확인 시각: ${NOW_KST}" \
-                --argjson color "$EMBED_COLOR" \
-                --arg footer "추억 길드" \
-                '{content: $content, embeds: [{title: $title, description: $description, color: $color, footer: {text: $footer}}]}')
-
-              curl -H "Content-Type: application/json" \
-                   -X POST \
-                   -d "$PAYLOAD" \
-                   ${{ secrets.DISCORD_WEBHOOK_URL }}
-            fi
-          fi
+          curl -H "Content-Type: application/json" \  
+               -X POST \  
+               -d "$PAYLOAD" \  
+               ${{ secrets.DISCORD_WEBHOOK_URL }}  
+        fi  
+      fi
