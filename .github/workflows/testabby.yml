@@ -76,7 +76,7 @@ jobs:
                 PAYLOAD=$(jq -n \
                   --arg content "$MESSAGE" \
                   --arg title "$EMBED_TITLE" \
-                  --arg description "수동 확인: $(date -d "@$NOW" '+%Y-%m-%d %H:%M:%S')" \
+                  --arg description "확인 시간: $(date -d "@$NOW" '+%Y-%m-%d %H:%M:%S')" \
                   --argjson color "$EMBED_COLOR" \
                   --arg footer "수동 실행이지만 자동 범위 내 메시지입니다." \
                   '{
