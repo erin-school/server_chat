@@ -20,6 +20,7 @@ jobs:
           KST_HOUR=$(date '+%H')
           KST_MINUTE=$(date '+%M')
           NOW_KST=$(date '+%Y-%m-%d %H:%M:%S')
+          NOW=$(date '+%s')
           echo "현재 시간 (KST): ${NOW_KST}"
 
           # times.json 확인
@@ -28,7 +29,13 @@ jobs:
             echo '["2025-11-04T00:54:00+09:00","2025-11-05T13:09:00+09:00","2025-11-07T01:24:00+09:00","2025-11-08T13:39:00+09:00","2025-11-10T01:54:00+09:00","2025-11-11T14:09:00+09:00"]' > times.json
           fi
 
-          NOW=$(date '+%s')
+          # 중복 발송 기록 파일
+          LAST_SENT_FILE="last_sent.txt"
+          if [ ! -f "$LAST_SENT_FILE" ]; then
+            echo "" > "$LAST_SENT_FILE"
+          fi
+          LAST_SENT=$(cat "$LAST_SENT_FILE")
+
           CLOSEST_DIFF=9999999999
           CLOSEST_TIME=""
 
@@ -40,11 +47,13 @@ jobs:
             ALERT=$((TARGET - 120)) # 2분 전
             DIFF=$((NOW - ALERT))
 
-            # 🔔 자동 알림 (2분 전 감지, 수면 시간 제외)
+            # 🔔 자동 알림 (2분 전 ~ 출현 시점까지, 수면 시간 제외, 중복 방지)
             if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
               if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
                 echo "💤 수면 시간: 자동 알림 생략 (${KST_HOUR}:${KST_MINUTE})"
-              elif [ $DIFF -ge 0 ] && [ $DIFF -lt 60 ]; then
+              elif [ $DIFF -ge 0 ] && [ $DIFF -lt 120 ] && [ "$LAST_SENT" != "$TIME" ]; then
+                echo "🔔 어비스 출현 알림 발송: $TIME"
+
                 MESSAGE="에린 세계에 어비스로 향하는 구멍이 출현했습니다! 빨리가서 골드를 얻으세요."
                 EMBED_TITLE="🌌 어비스 구멍 출현!"
                 EMBED_COLOR=1127128
@@ -71,6 +80,9 @@ jobs:
                      -X POST \
                      -d "$PAYLOAD" \
                      ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+                # 발송 기록 갱신
+                echo "$TIME" > "$LAST_SENT_FILE"
               fi
             fi
 
