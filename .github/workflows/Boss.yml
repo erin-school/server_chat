@@ -2,9 +2,8 @@ name: Discord Boss Alert (보스 알림)
 
 on:
   schedule:
-    # UTC 기준: 여유 시간을 포함한 매분 트리거
-    - cron: "55-59 2,8,10,12 * * *"  # 11:55~11:59, 17:55~17:59, 19:55~19:59, 21:55~21:59 KST
-    - cron: "0 3,9,11,13 * * *"      # 12:00, 18:00, 20:00, 22:00 KST
+    # 매분 실행
+    - cron: "* * * * *"
   workflow_dispatch:
 
 jobs:
@@ -24,7 +23,8 @@ jobs:
             exit 0
           fi
 
-          # 알림 시간 범위: 각 시간대 11:55~12:00, 17:55~18:00, 19:55~20:00, 21:55~22:00
+          # 알림 시간 범위: 보스 등장 2분 전 + 여유 5분
+          # KST 기준: 11:55~12:00, 17:55~18:00, 19:55~20:00, 21:55~22:00
           SEND=false
           case "$KST_HOUR" in
             "11") [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 60 ] && SEND=true ;;
@@ -34,24 +34,25 @@ jobs:
           esac
 
           if [ "$SEND" = false ]; then
-            echo "알림 대상 시간이 아님"
+            echo "알림 대상 시간이 아님 (${KST_HOUR}:${KST_MINUTE})"
             exit 0
           fi
 
-          # 메시지 설정
+          # 시간대별 메시지 설정
           case "$KST_HOUR" in
-            "11") MESSAGE="[⏰ 오전 12:00 보스 등장 2분 전] 인장 파밍 안내"
+            "11") MESSAGE="[⏰ 오전 12:00] 파밍을 위해 페리 매우 어려움, 토르모그 일반/어려움을 반드시 돌아야 합니다."
                   EMBED_COLOR=1127128 ;;
-            "17") MESSAGE="[⏰ 오후 18:00 보스 등장 2분 전] 인장 파밍 안내"
+            "17") MESSAGE="[⏰ 오후 18:00] 파밍을 위해 페리 매우 어려움, 토르모그 일반/어려움을 반드시 돌아야 합니다."
                   EMBED_COLOR=14177041 ;;
-            "19") MESSAGE="[⏰ 오후 20:00 보스 등장 2분 전] 인장 파밍 안내"
+            "19") MESSAGE="[⏰ 오후 20:00] 파밍을 위해 페리 매우 어려움, 토르모그 일반/어려움을 반드시 돌아야 합니다."
                   EMBED_COLOR=16753920 ;;
-            "21") MESSAGE="[⏰ 오후 22:00 보스 등장 2분 전] 인장 파밍 안내"
+            "21") MESSAGE="[⏰ 오후 22:00] 파밍을 위해 페리 매우 어려움, 토르모그 일반/어려움을 반드시 돌아야 합니다."
                   EMBED_COLOR=3447003 ;;
           esac
 
           EMBED_TITLE="필드 보스가 곧 등장 합니다."
 
+          # Embed payload 생성
           PAYLOAD=$(jq -n \
             --arg content "$MESSAGE" \
             --arg title "$EMBED_TITLE" \
@@ -70,6 +71,7 @@ jobs:
               ]
             }')
 
+          # Discord Webhook 발송
           curl -H "Content-Type: application/json" \
             -X POST \
             -d "$PAYLOAD" \
