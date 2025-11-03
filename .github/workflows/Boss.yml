@@ -2,8 +2,9 @@ name: Discord Boss Alert (보스 알림)
 
 on:
   schedule:
-    # UTC 기준 02:58, 08:58, 10:58, 12:58 → KST 11:58, 17:58, 19:58, 21:58
-    - cron: "58 2,8,10,12 * * *"
+    # UTC 기준: 여유 시간을 포함한 매분 트리거
+    - cron: "55-59 2,8,10,12 * * *"  # 11:55~11:59, 17:55~17:59, 19:55~19:59, 21:55~21:59 KST
+    - cron: "0 3,9,11,13 * * *"      # 12:00, 18:00, 20:00, 22:00 KST
   workflow_dispatch:
 
 jobs:
@@ -23,56 +24,53 @@ jobs:
             exit 0
           fi
 
-          # 알림은 2분 전만 발송
-          if [ "$KST_MINUTE" -eq 58 ]; then
-            case "$KST_HOUR" in
-              "11")
-                MESSAGE="[⏰ 오전 12:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                EMBED_COLOR=1127128
-                ;;
-              "17")
-                MESSAGE="[⏰ 오후 18:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                EMBED_COLOR=14177041
-                ;;
-              "19")
-                MESSAGE="[⏰ 오후 20:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                EMBED_COLOR=16753920
-                ;;
-              "21")
-                MESSAGE="[⏰ 오후 22:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
-                EMBED_COLOR=3447003
-                ;;
-              *)
-                echo "알림 대상 시간이 아님"
-                exit 0
-                ;;
-            esac
+          # 알림 시간 범위: 각 시간대 11:55~12:00, 17:55~18:00, 19:55~20:00, 21:55~22:00
+          SEND=false
+          case "$KST_HOUR" in
+            "11") [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 60 ] && SEND=true ;;
+            "17") [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 60 ] && SEND=true ;;
+            "19") [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 60 ] && SEND=true ;;
+            "21") [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 60 ] && SEND=true ;;
+          esac
 
-            EMBED_TITLE="필드 보스가 곧 등장 합니다."
-
-            PAYLOAD=$(jq -n \
-              --arg content "$MESSAGE" \
-              --arg title "$EMBED_TITLE" \
-              --arg description "현재 시각: $NOW_KST" \
-              --argjson color "$EMBED_COLOR" \
-              --arg footer "해당 알림은 수면 시간 보장을 위해 저녁 11시부터 다음날 8시까지는 발송되지 않습니다." \
-              '{
-                content: $content,
-                embeds: [
-                  {
-                    title: $title,
-                    description: $description,
-                    color: $color,
-                    footer: {text: $footer}
-                  }
-                ]
-              }')
-
-            curl -H "Content-Type: application/json" \
-              -X POST \
-              -d "$PAYLOAD" \
-              ${{ secrets.DISCORD_WEBHOOK_URL }}
-          else
+          if [ "$SEND" = false ]; then
             echo "알림 대상 시간이 아님"
             exit 0
           fi
+
+          # 메시지 설정
+          case "$KST_HOUR" in
+            "11") MESSAGE="[⏰ 오전 12:00 보스 등장 2분 전] 인장 파밍 안내"
+                  EMBED_COLOR=1127128 ;;
+            "17") MESSAGE="[⏰ 오후 18:00 보스 등장 2분 전] 인장 파밍 안내"
+                  EMBED_COLOR=14177041 ;;
+            "19") MESSAGE="[⏰ 오후 20:00 보스 등장 2분 전] 인장 파밍 안내"
+                  EMBED_COLOR=16753920 ;;
+            "21") MESSAGE="[⏰ 오후 22:00 보스 등장 2분 전] 인장 파밍 안내"
+                  EMBED_COLOR=3447003 ;;
+          esac
+
+          EMBED_TITLE="필드 보스가 곧 등장 합니다."
+
+          PAYLOAD=$(jq -n \
+            --arg content "$MESSAGE" \
+            --arg title "$EMBED_TITLE" \
+            --arg description "현재 시각: $NOW_KST" \
+            --argjson color "$EMBED_COLOR" \
+            --arg footer "해당 알림은 수면 시간 보장을 위해 저녁 11시부터 다음날 8시까지는 발송되지 않습니다." \
+            '{
+              content: $content,
+              embeds: [
+                {
+                  title: $title,
+                  description: $description,
+                  color: $color,
+                  footer: {text: $footer}
+                }
+              ]
+            }')
+
+          curl -H "Content-Type: application/json" \
+            -X POST \
+            -d "$PAYLOAD" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
