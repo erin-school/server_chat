@@ -2,19 +2,24 @@ name: Daily Morning Alert
 
 on:
   schedule:
-    - cron: "30 0 * * *"  # UTC 기준 00:30 → KST 09:30
-  workflow_dispatch: {}    # 수동 실행도 가능
+    - cron: "0 0 * * *"  # UTC 00:00 → KST 09:00
+  workflow_dispatch: {}    # 수동 실행 가능
 
 jobs:
   daily_alert:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Send daily morning embed
+      - name: Send morning embed
         run: |
-          NOW_KST=$(date '+%Y-%m-%d %H:%M:%S')
+          NOW_KST=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S')
+          HOUR=$(date -d '+9 hours' '+%H')
+
+          # 09시 이후에만 발송
+          if [ "$HOUR" -lt 9 ]; then
+            echo "아직 09시가 되지 않았습니다. (${NOW_KST})"
+            exit 0
+          fi
+
           PAYLOAD=$(jq -n \
             --arg now "$NOW_KST" \
             '{
