@@ -47,7 +47,7 @@ jobs:
                   EMBED_COLOR=3447003 ;;
           esac
 
-          EMBED_TITLE="필드 보스가 곧 등장 합니다."
+          EMBED_TITLE="필드 보스를 놓치지 마세요."
 
           # Embed payload 생성
           PAYLOAD=$(jq -n \
