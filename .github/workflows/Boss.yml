@@ -2,7 +2,8 @@ name: Discord Boss Alert (보스 알림)
 
 on:
   schedule:
-    - cron: "55-59 11,17,19,21 * * *"  # 11,17,19,21시 55~59분 매분 실행
+    # UTC 기준 02:58, 08:58, 10:58, 12:58 → KST 11:58, 17:58, 19:58, 21:58
+    - cron: "58 2,8,10,12 * * *"
   workflow_dispatch:
 
 jobs:
@@ -11,9 +12,10 @@ jobs:
     steps:
       - name: Send boss alert
         run: |
+          # KST 기준 현재 시각
+          NOW_KST=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S')
           KST_HOUR=$(date -d '+9 hours' '+%H')
           KST_MINUTE=$(date -d '+9 hours' '+%M')
-          NOW_KST=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S')
 
           # 수면 시간 23~08시 제외
           if [ "$KST_HOUR" -ge 23 ] || [ "$KST_HOUR" -lt 8 ]; then
@@ -21,23 +23,23 @@ jobs:
             exit 0
           fi
 
-          # 보스 알림: 55~59분 사이 발송
-          if [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 59 ]; then
+          # 알림은 2분 전만 발송
+          if [ "$KST_MINUTE" -eq 58 ]; then
             case "$KST_HOUR" in
               "11")
-                MESSAGE="[⏰ 오전 11:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                MESSAGE="[⏰ 오전 12:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
                 EMBED_COLOR=1127128
                 ;;
               "17")
-                MESSAGE="[⏰ 오후 5:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                MESSAGE="[⏰ 오후 18:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
                 EMBED_COLOR=14177041
                 ;;
               "19")
-                MESSAGE="[⏰ 오후 7:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                MESSAGE="[⏰ 오후 20:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
                 EMBED_COLOR=16753920
                 ;;
               "21")
-                MESSAGE="[⏰ 오후 9:58] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
+                MESSAGE="[⏰ 오후 22:00 보스 등장 2분 전] 인장 파밍을 위해 꼭 페리 매우 어려움, 토르모그 일반/어려움을 한번씩 돌아주세요."
                 EMBED_COLOR=3447003
                 ;;
               *)
@@ -70,7 +72,6 @@ jobs:
               -X POST \
               -d "$PAYLOAD" \
               ${{ secrets.DISCORD_WEBHOOK_URL }}
-
           else
             echo "알림 대상 시간이 아님"
             exit 0
