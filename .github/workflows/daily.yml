@@ -1,9 +1,7 @@
 name: Daily Morning Alert
 
 on:
-  schedule:
-    - cron: "0 0 * * *"  # UTC 00:00 → KST 09:00
-  workflow_dispatch: {}    # 수동 실행 가능
+  workflow_dispatch: {}    # 수동 실행 전용
 
 jobs:
   daily_alert:
@@ -12,13 +10,6 @@ jobs:
       - name: Send morning embed
         run: |
           NOW_KST=$(date -d '+9 hours' '+%Y-%m-%d %H:%M:%S')
-          HOUR=$(date -d '+9 hours' '+%H')
-
-          # 09시 이후에만 발송
-          if [ "$HOUR" -lt 9 ]; then
-            echo "아직 09시가 되지 않았습니다. (${NOW_KST})"
-            exit 0
-          fi
 
           PAYLOAD=$(jq -n \
             --arg now "$NOW_KST" \
