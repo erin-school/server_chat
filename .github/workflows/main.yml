@@ -36,12 +36,12 @@ jobs:
             EMBED_COLOR=10181046
 
           else
-            # 자동 알림: 매시 55~59분
+            # 자동 알림: 매시 55분 ~ 61분 허용 (58분 목표 + 최대 2분 초과)
             ALERT_HOURS=("11" "17" "19" "21")
             SEND_ALERT=false
 
             for H in "${ALERT_HOURS[@]}"; do
-              if [ "$KST_HOUR" == "$H" ] && [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 59 ]; then
+              if [ "$KST_HOUR" == "$H" ] && [ "$KST_MINUTE" -ge 55 ] && [ "$KST_MINUTE" -le 61 ]; then
                 SEND_ALERT=true
                 break
               fi
