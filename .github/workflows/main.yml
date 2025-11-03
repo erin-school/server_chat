@@ -35,7 +35,7 @@ jobs:
             [ $SEC_LEFT -eq 60 ] && SEC_LEFT=0
             [ $MIN_LEFT -lt 0 ] && MIN_LEFT=0
 
-            MESSAGE="⏳ 아직 결계가 열리지 않았습니다.\n다음 결계까지 남은 시간: ${MIN_LEFT}분 ${SEC_LEFT}초"
+            MESSAGE="⏳ 아직 결계가 열리지 않았습니다. 다음 결계까지 남은 시간: ${MIN_LEFT}분 ${SEC_LEFT}초"
             EMBED_TITLE="결계 대기 중"
             EMBED_COLOR=10181046
           fi
