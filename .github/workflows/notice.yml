@@ -19,7 +19,7 @@ jobs:
           COLOR=16753920
 
           # 줄바꿈 escape 처리
-          ESCAPED_DESC=$(printf '%s[공식 링크] %s' "$DESCRIPTION" "$URL" | sed ':a;N;$!ba;s/\n/\\n/g')
+          ESCAPED_DESC=$(printf '%s %s' "$DESCRIPTION" "$URL" | sed ':a;N;$!ba;s/\n/\\n/g')
 
           PAYLOAD=$(jq -n \
             --arg title "$TITLE" \
