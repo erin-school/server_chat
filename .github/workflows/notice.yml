@@ -10,34 +10,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Send notice embed
+      - name: Send notice embeds
         run: |
-          TITLE="캐릭터 접속 시, 간헐적으로 공지사항 화면이 하얗게 변하며 접속이 불가능한 현상"
-          DESCRIPTION="해당 현상 발생 시, 게임을 완전히 종료한 이후 재접속을 부탁드립니다."
-          URL=""
-          FOOTER="[공식] 확인 중인 현상"
-          COLOR=16753920
+          # -------------------------------
+          # 공지사항 배열 (제목|내용)
+          # -------------------------------
+          NOTICES=(
+            "'스푸키 스티치 로브' 착용 시, '눈 장식'이 함께 노출되는 현상|추후, '눈 장식'이 노출되지 않도록 수정될 예정입니다."
+            "[성장 가이드 - 전투력 가이드] 내 [보석]에서 간헐적으로 희귀도가 아닌 획득 순으로 보석이 추천되는 현상|추후, 희귀도 순으로 보석이 추천되도록 수정될 예정입니다."
+          )
 
-          # 줄바꿈 escape 처리
-          ESCAPED_DESC=$(printf '%s %s' "$DESCRIPTION" "$URL" | sed ':a;N;$!ba;s/\n/\\n/g')
+          EMBEDS_JSON="[ ]"
 
-          PAYLOAD=$(jq -n \
-            --arg title "$TITLE" \
-            --arg description "$ESCAPED_DESC" \
-            --argjson color "$COLOR" \
-            --arg footer "$FOOTER" \
-            '{
-              embeds: [
-                {
-                  title: $title,
-                  description: $description,
-                  color: $color,
-                  footer: {text: $footer}
-                }
-              ]
-            }')
+          for notice in "${NOTICES[@]}"; do
+            TITLE=$(echo "$notice" | cut -d'|' -f1)
+            DESCRIPTION=$(echo "$notice" | cut -d'|' -f2)
 
-          # secrets 사용 시 반드시 따옴표로 감싸기
+            # 줄바꿈 escape 처리
+            ESCAPED_DESC=$(printf '%s' "$DESCRIPTION" | sed ':a;N;$!ba;s/\n/\\n/g')
+
+            EMBED=$(jq -n \
+              --arg title "$TITLE" \
+              --arg description "$ESCAPED_DESC" \
+              --arg footer "[공식] 확인 중인 현상" \
+              --argjson color 16753920 \
+              '{
+                title: $title,
+                description: $description,
+                color: $color,
+                footer: {text: $footer}
+              }')
+
+            # 배열에 추가
+            EMBEDS_JSON=$(echo "$EMBEDS_JSON" | jq ". + [$EMBED]")
+          done
+
+          # 전체 payload 생성
+          PAYLOAD=$(jq -n --argjson embeds "$EMBEDS_JSON" '{embeds: $embeds}')
+
+          # Discord Webhook 전송
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "$PAYLOAD" \
