@@ -31,7 +31,7 @@ jobs:
             EMBED=$(jq -n \
               --arg title "$TITLE" \
               --arg description "$ESCAPED_DESC" \
-              --arg footer "[공식] 이벤트" \
+              --arg footer "[공식] 에린 노트" \
               --argjson color 16753920 \
               '{
                 title: $title,
