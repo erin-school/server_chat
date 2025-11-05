@@ -16,11 +16,8 @@ jobs:
           # 공지사항 배열 (제목|내용)
           # -------------------------------
           NOTICES=(
-             "가을과 함께! 피크타임! 이벤트 안내  | https://mabinogimobile.nexon.com/News/Events/3192456"
-              "만들고, 모으고, 꾸미고! 이벤트 안내 | https://mabinogimobile.nexon.com/News/Events/3212041"
-           "꼬박꼬박 일일미션 이벤트 안내 | https://mabinogimobile.nexon.com/News/Events/3212042"
-            "모험가 길드의 7일 특별 지원 & 집중 플레이 촉매 이벤트 안내  | https://mabinogimobile.nexon.com/News/Events/3212046"
-          )
+             "타바르타스 레이드와 함께, 새로운 소식을 전해드립니다. | https://mabinogimobile.nexon.com/News/Devnote/3212049"
+                )
 
           EMBEDS_JSON="[ ]"
 
