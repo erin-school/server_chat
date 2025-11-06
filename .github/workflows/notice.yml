@@ -16,7 +16,7 @@ jobs:
           # 공지사항 배열 (제목|내용)
           # -------------------------------
           NOTICES=(
-             "(완료) 11/6(목) 정기점검 안내 (06:00 ~ 09:20)  | https://mabinogimobile.nexon.com/News/Notice/3212048
+             "(완료) 11/6(목) 정기점검 안내 (06:00 ~ 09:20)  | https://mabinogimobile.nexon.com/News/Notice/3212048"
                 )
 
           EMBEDS_JSON="[ ]"
