@@ -16,7 +16,7 @@ jobs:
           # 공지사항 배열 (제목|내용)
           # -------------------------------
           NOTICES=(
-             "타바르타스 레이드와 함께, 새로운 소식을 전해드립니다. | https://mabinogimobile.nexon.com/News/Devnote/3212049"
+             "(완료) 11/6(목) 정기점검 안내 (06:00 ~ 09:20)  | https://mabinogimobile.nexon.com/News/Notice/3212048
                 )
 
           EMBEDS_JSON="[ ]"
@@ -31,7 +31,7 @@ jobs:
             EMBED=$(jq -n \
               --arg title "$TITLE" \
               --arg description "$ESCAPED_DESC" \
-              --arg footer "[공식] 에린 노트" \
+              --arg footer "[공식] 점검" \
               --argjson color 16753920 \
               '{
                 title: $title,
